@@ -1,0 +1,21 @@
+{
+  "policy_id": "LEARNED-1767268800000",
+  "name": "outerwear major damage human-review escalation",
+  "group": "LEARNED",
+  "type": "GUIDANCE",
+  "description": "Learned from 3 human overrides. For outerwear returns with condition \"major damage\", employees repeatedly changed SCRAP to MANUAL_REVIEW.",
+  "preferred_action": "MANUAL_REVIEW",
+  "categories": "[\"outerwear\"]",
+  "conditions": "[\"major damage\"]",
+  "condition_keywords": "[]",
+  "note_keywords": "[]",
+  "brand_tiers": "[]",
+  "tags_attached": "",
+  "requirements": "{\"learned_from_overrides\":true,\"occurrence_count\":3,\"previous_system_decision\":\"SCRAP\"}",
+  "min_original_price": "",
+  "max_estimated_resale_value": "",
+  "min_estimated_resale_value": "",
+  "max_days_since_delivery": "",
+  "evidence": "[{\"return_id\":\"EXAMPLE_RETURN_1\",\"sku\":\"EXAMPLE_SKU\",\"condition_note\":\"Synthetic inspection\",\"override_reason\":\"Synthetic review\"},{\"return_id\":\"EXAMPLE_RETURN_2\",\"sku\":\"EXAMPLE_SKU\",\"condition_note\":\"Synthetic inspection\",\"override_reason\":\"Synthetic review\"},{\"return_id\":\"EXAMPLE_RETURN_3\",\"sku\":\"EXAMPLE_SKU\",\"condition_note\":\"Synthetic inspection\",\"override_reason\":\"Synthetic review\"}]",
+  "approval_status": "PENDING"
+}

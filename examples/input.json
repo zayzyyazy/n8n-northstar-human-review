@@ -1,0 +1,21 @@
+{
+  "return_id": "EXAMPLE_RETURN_ID",
+  "sku": "EXAMPLE_SKU",
+  "condition": "major damage",
+  "tags_attached": "no",
+  "days_since_delivery": 5,
+  "product": {
+    "category": "outerwear",
+    "original_price": 149
+  },
+  "policy_match_result": {
+    "matched_policies": []
+  },
+  "ai_result": {
+    "parse_success": true,
+    "decision": "SCRAP",
+    "confidence": 0.95,
+    "reason": "Synthetic recommendation",
+    "economic_reasoning": ""
+  }
+}

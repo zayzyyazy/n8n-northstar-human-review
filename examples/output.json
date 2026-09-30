@@ -1,0 +1,9 @@
+{
+  "action": "MANUAL_REVIEW",
+  "source": "HARD_RULE",
+  "reason": "Company policy requires human approval for this case.",
+  "confidence": null,
+  "economic_reasoning": "",
+  "matched_policy_ids": [],
+  "applied_learned_policy": null
+}

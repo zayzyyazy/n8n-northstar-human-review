@@ -1,0 +1,83 @@
+{
+  "YOUR_DATA_TABLE_1": {
+    "nodes": [
+      "Insert Policies",
+      "Activate Learned Policy"
+    ],
+    "columns": {
+      "policy_id": "string",
+      "name": "string",
+      "group": "string",
+      "type": "string",
+      "description": "string",
+      "preferred_action": "string",
+      "categories": "string",
+      "conditions": "string",
+      "condition_keywords": "string",
+      "note_keywords": "string",
+      "brand_tiers": "string",
+      "tags_attached": "string",
+      "requirements": "string",
+      "min_original_price": "string",
+      "max_estimated_resale_value": "string",
+      "min_estimated_resale_value": "string",
+      "max_days_since_delivery": "string"
+    }
+  },
+  "northstar_polic": {
+    "nodes": [
+      "Load Northstar Policies"
+    ],
+    "columns": {}
+  },
+  "YOUR_DATA_TABLE_2": {
+    "nodes": [
+      "Save Decision History",
+      "Load Human Overrides"
+    ],
+    "columns": {
+      "return_id": "string",
+      "sku": "string",
+      "product_name": "string",
+      "category": "string",
+      "condition": "string",
+      "condition_note": "string",
+      "system_decision": "string",
+      "system_confidence": "number",
+      "human_decision": "string",
+      "was_overridden": "boolean",
+      "override_reason": "string",
+      "decision_source": "string",
+      "matched_policy_ids": "string",
+      "created_at": "dateTime"
+    }
+  },
+  "YOUR_DATA_TABLE_3": {
+    "nodes": [
+      "Load Pending Candidate",
+      "Save Pending Candidate",
+      "Update row(s)"
+    ],
+    "columns": {
+      "policy_id": "string",
+      "name": "string",
+      "group": "string",
+      "type": "string",
+      "description": "string",
+      "preferred_action": "string",
+      "categories": "string",
+      "conditions": "string",
+      "condition_keywords": "string",
+      "note_keywords": "string",
+      "brand_tiers": "string",
+      "tags_attached": "string",
+      "requirements": "string",
+      "min_original_price": "string",
+      "max_estimated_resale_value": "string",
+      "min_estimated_resale_value": "string",
+      "max_days_since_delivery": "string",
+      "approval_status": "string",
+      "evidence": "string"
+    }
+  }
+}

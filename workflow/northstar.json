@@ -1,0 +1,2150 @@
+{
+  "name": "NORTHSTAR — AI-Assisted Returns Decision Workflow with Human Review",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Northstar Returns Inspection",
+        "formDescription": "Inspect the returned item and submit its observed condition.\n",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Return ",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "SKU",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "condition",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Perfect"
+                  },
+                  {
+                    "option": "Minor stain"
+                  },
+                  {
+                    "option": "Major stain"
+                  },
+                  {
+                    "option": "small tear"
+                  },
+                  {
+                    "option": "major damage"
+                  },
+                  {
+                    "option": "used"
+                  },
+                  {
+                    "option": "defective"
+                  },
+                  {
+                    "option": "missing part"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Condition Note",
+              "fieldType": "textarea",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Tags Attached",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "yes"
+                  },
+                  {
+                    "option": "no"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Original Packaging",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Intact"
+                  },
+                  {
+                    "option": "Damaged"
+                  },
+                  {
+                    "option": "Missing"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Days Since Delivery",
+              "fieldType": "number",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        1472,
+        -144
+      ],
+      "id": "5f26356c-200b-58d2-b4c3-15fe2057faf5",
+      "name": "On form submission"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\n\nconst product = data.product;\nconst handlingCost = data.company_policy.handling_cost;\n\nconst refurbishNetRecovery =\n  product.estimated_resale_value -\n  product.refurbishment_cost_estimate -\n  handlingCost;\n\nconst scrapRecovery =\n  product.scrap_recovery_value;\n\nconst refurbishAdvantage =\n  refurbishNetRecovery - scrapRecovery;\n\nconst refurbishmentEconomicallySensible =\n  refurbishNetRecovery > 0 &&\n  refurbishAdvantage >= 15;\n\nconst supplierWindowValid =\n  Number(data.days_since_delivery) <=\n  Number(product.supplier_return_window_days);\n\nreturn [{\n  json: {\n    ...data,\n\n    economics: {\n      estimated_resale_value:\n        product.estimated_resale_value,\n\n      refurbishment_cost:\n        product.refurbishment_cost_estimate,\n\n      handling_cost:\n        handlingCost,\n\n      refurbish_net_recovery:\n        Number(refurbishNetRecovery.toFixed(2)),\n\n      scrap_recovery:\n        product.scrap_recovery_value,\n\n      refurbish_advantage_vs_scrap:\n        Number(refurbishAdvantage.toFixed(2)),\n\n      refurbishment_economically_sensible:\n        refurbishmentEconomicallySensible,\n\n      supplier_window_valid:\n        supplierWindowValid\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2192,
+        -624
+      ],
+      "id": "b34b94c7-fb18-56f6-80a7-5b5268ed616b",
+      "name": "Calculate Recovery Economics"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3e4dc722-4bbd-5fb6-880d-21b8c12062e9",
+              "leftValue": "={{ $json.product_found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1776,
+        -336
+      ],
+      "id": "945b92b1-e7c5-5eac-8fc3-97a4e74f1a4f",
+      "name": "Product Found?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json;\n\nconst products = [\n  {\n    sku: \"JKT-112-BLK-M\",\n    product_name: \"NordPeak Alpine Wool Jacket\",\n    category: \"outerwear\",\n    brand: \"NordPeak\",\n    brand_tier: \"premium\",\n    original_price: 149,\n    estimated_resale_value: 92,\n    supplier: \"NordPeak Distribution\",\n    supplier_return_window_days: 30,\n    refurbishment_cost_estimate: 12,\n    scrap_recovery_value: 3\n  },\n  {\n    sku: \"JKT-113-NVY-S\",\n    product_name: \"NordPeak City Parka\",\n    category: \"outerwear\",\n    brand: \"NordPeak\",\n    brand_tier: \"premium\",\n    original_price: 189,\n    estimated_resale_value: 118,\n    supplier: \"NordPeak Distribution\",\n    supplier_return_window_days: 30,\n    refurbishment_cost_estimate: 15,\n    scrap_recovery_value: 4\n  },\n  {\n    sku: \"TSH-201-WHT-M\",\n    product_name: \"Northstar Essential Cotton Tee\",\n    category: \"tshirt\",\n    brand: \"Northstar\",\n    brand_tier: \"standard\",\n    original_price: 24.99,\n    estimated_resale_value: 14,\n    supplier: \"CottonWorks GmbH\",\n    supplier_return_window_days: 14,\n    refurbishment_cost_estimate: 7,\n    scrap_recovery_value: 1\n  },\n  {\n    sku: \"TRS-310-BLK-36\",\n    product_name: \"Northstar Tailored Trousers\",\n    category: \"trousers\",\n    brand: \"Northstar\",\n    brand_tier: \"standard\",\n    original_price: 59.99,\n    estimated_resale_value: 38,\n    supplier: \"TextileWorks Europe\",\n    supplier_return_window_days: 21,\n    refurbishment_cost_estimate: 9,\n    scrap_recovery_value: 2\n  },\n  {\n    sku: \"SHO-401-WHT-39\",\n    product_name: \"UrbanStep Leather Sneaker\",\n    category: \"shoes\",\n    brand: \"UrbanStep\",\n    brand_tier: \"mid\",\n    original_price: 99,\n    estimated_resale_value: 62,\n    supplier: \"UrbanStep Footwear\",\n    supplier_return_window_days: 20,\n    refurbishment_cost_estimate: 13,\n    scrap_recovery_value: 4\n  },\n  {\n    sku: \"BAG-510-BRN-OS\",\n    product_name: \"Atelier Nera Leather Tote\",\n    category: \"bag\",\n    brand: \"Atelier Nera\",\n    brand_tier: \"premium\",\n    original_price: 229,\n    estimated_resale_value: 155,\n    supplier: \"Atelier Nera GmbH\",\n    supplier_return_window_days: 30,\n    refurbishment_cost_estimate: 22,\n    scrap_recovery_value: 8\n  },\n  {\n    sku: \"SWT-610-GRY-M\",\n    product_name: \"Northstar Merino Sweater\",\n    category: \"knitwear\",\n    brand: \"Northstar\",\n    brand_tier: \"mid\",\n    original_price: 79,\n    estimated_resale_value: 49,\n    supplier: \"Merino Textile Group\",\n    supplier_return_window_days: 21,\n    refurbishment_cost_estimate: 10,\n    scrap_recovery_value: 2\n  },\n  {\n    sku: \"UND-700-BLK-M\",\n    product_name: \"Northstar Essential Brief\",\n    category: \"underwear\",\n    brand: \"Northstar\",\n    brand_tier: \"standard\",\n    original_price: 18,\n    estimated_resale_value: 9,\n    supplier: \"Essentials Manufacturing\",\n    supplier_return_window_days: 14,\n    refurbishment_cost_estimate: 5,\n    scrap_recovery_value: 0\n  },\n  {\n    sku: \"DRS-810-RED-S\",\n    product_name: \"Maison Vale Evening Dress\",\n    category: \"dress\",\n    brand: \"Maison Vale\",\n    brand_tier: \"premium\",\n    original_price: 179,\n    estimated_resale_value: 110,\n    supplier: \"Maison Vale Europe\",\n    supplier_return_window_days: 21,\n    refurbishment_cost_estimate: 18,\n    scrap_recovery_value: 3\n  },\n  {\n    sku: \"ACC-910-BLK-OS\",\n    product_name: \"Northstar Leather Belt\",\n    category: \"accessory\",\n    brand: \"Northstar\",\n    brand_tier: \"mid\",\n    original_price: 39,\n    estimated_resale_value: 24,\n    supplier: \"Accessory Works\",\n    supplier_return_window_days: 14,\n    refurbishment_cost_estimate: 6,\n    scrap_recovery_value: 1\n  }\n];\n\nconst product = products.find(\n  p => p.sku.toLowerCase() === String(input.sku).toLowerCase()\n);\n\nif (!product) {\n  return [{\n    json: {\n      ...input,\n      product_found: false,\n      lookup_error: `Unknown SKU: ${input.sku}`\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...input,\n    product_found: true,\n    product\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        -336
+      ],
+      "id": "8eb628a1-a506-542b-b6d8-fce69bb49544",
+      "name": "Lookup Northstar Product"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0f066da4-a241-5cb4-863f-42022101ace9",
+              "name": "return_id",
+              "value": "={{ $json['Return '] }}",
+              "type": "string"
+            },
+            {
+              "id": "50ec92cf-9df8-546b-adc3-5c147a470858",
+              "name": "sku",
+              "value": "={{ $json.SKU }}",
+              "type": "string"
+            },
+            {
+              "id": "bfeea988-ea55-51ec-a40a-f1cfb0dda564",
+              "name": "condition",
+              "value": "={{ $json.condition }}",
+              "type": "string"
+            },
+            {
+              "id": "3f991c08-d70d-5b92-8c43-b0b5ab3ad2a4",
+              "name": "condition_note",
+              "value": "={{ $json['Condition Note'] }}",
+              "type": "string"
+            },
+            {
+              "id": "6cf9a6f1-ae09-5ba0-8ed6-ad955490f06c",
+              "name": "tags_attached",
+              "value": "={{ $json['Tags Attached'] }}",
+              "type": "string"
+            },
+            {
+              "id": "df526717-6730-5616-8a98-fe53e35ae3cf",
+              "name": "packaging",
+              "value": "={{ $json['Original Packaging'] }}",
+              "type": "string"
+            },
+            {
+              "id": "f4fdecee-da76-5dee-973f-d0c7eeb21a32",
+              "name": "days_since_delivery",
+              "value": "={{ $json['Days Since Delivery'] }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1440,
+        -336
+      ],
+      "id": "17834a41-aaa4-5bc3-87f8-5ff92608d06a",
+      "name": "Normalize Return Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\n\nconst product = data.product;\n\nconst condition =\n  String(data.condition || \"\").toLowerCase();\n\nconst category =\n  String(product.category || \"\").toLowerCase();\n\nconst originalPrice =\n  Number(product.original_price);\n\nconst hardRules = [];\n\nlet forcedAction = null;\nlet requiresManualReview = false;\n\n// Hygiene rule\nif (\n  category === \"underwear\" &&\n  (\n    condition.includes(\"used\") ||\n    condition.includes(\"stain\") ||\n    condition.includes(\"damage\")\n  )\n) {\n  hardRules.push({\n    rule_id: \"POL-002\",\n    message:\n      \"Used or compromised underwear cannot be returned to sale.\"\n  });\n\n  forcedAction = \"SCRAP\";\n}\n\n// High-value scrap protection\nif (\n  originalPrice > 100 &&\n  (\n    condition.includes(\"major damage\") ||\n    condition.includes(\"major stain\")\n  )\n) {\n  hardRules.push({\n    rule_id: \"POL-003\",\n    message:\n      \"High-value items cannot be automatically scrapped.\"\n  });\n\n  requiresManualReview = true;\n}\n\n// Perfect condition\nif (\n  condition === \"perfect\" &&\n  String(data.tags_attached).toLowerCase() === \"yes\"\n) {\n  hardRules.push({\n    rule_id: \"POL-001\",\n    message:\n      \"Perfect condition with tags attached is eligible for restock.\"\n  });\n}\n\nreturn [{\n  json: {\n    ...data,\n\n    hard_rule_result: {\n      matched_rules: hardRules,\n      forced_action: forcedAction,\n      requires_manual_review:\n        requiresManualReview\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2176,
+        -160
+      ],
+      "id": "17c66b6e-5643-5f4d-9f93-c97636cd3d3c",
+      "name": "Evaluate Hard Rules"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $json;\n\nconst decisionContext = {\n  company: d.company_policy.company,\n\n  employee_observation: {\n    return_id: d.return_id,\n    sku: d.sku,\n    condition: d.condition,\n    condition_note: d.condition_note,\n    tags_attached: d.tags_attached,\n    packaging: d.packaging,\n    days_since_delivery: d.days_since_delivery\n  },\n\n  product: d.product,\n\n  economics: d.economics,\n\n  hard_rule_result: d.hard_rule_result,\n\n  company_policies: d.policy_match_result.matched_policies,\n\n  allowed_actions:\n    d.company_policy.allowed_actions\n};\n\nreturn [{\n  json: {\n    ...d,\n    decision_context: decisionContext\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1952,
+        64
+      ],
+      "id": "6cb8c22d-f9a9-5d6d-9984-544b7f906289",
+      "name": "Prepare Decision Context"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_OLLAMA_HOST/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  model: \"hermes3:8b\",\n  stream: false,\n  messages: [\n    {\n      role: \"system\",\n      content: `You are the returns decision engine for Northstar Apparel.\n\nYou evaluate returned fashion products using employee observations, product data, company policies, deterministic hard-rule results, and financial recovery calculations.\n\nChoose exactly ONE operational action:\n\nRESTOCK\nREFURBISH\nRETURN_TO_SUPPLIER\nSCRAP\nMANUAL_REVIEW\n\nPOLICY PRIORITY:\n1. HARD policies and deterministic hard-rule results have highest priority.\n2. LEARNED policies represent repeated human corrections that have been reviewed and approved by a manager.\n3. If an applicable LEARNED policy conflicts with ordinary GUIDANCE, follow the LEARNED policy.\n4. Ordinary GUIDANCE applies when no HARD or applicable LEARNED policy determines the action.\n5. Financial calculations support the decision but do not override HARD or applicable LEARNED policies.\n\nRules:\n- Never invent product, supplier, financial, or policy information.\n- Use only the policies provided in the case.\n- Use the provided financial calculations instead of calculating values yourself.\n- If information remains conflicting or risk is significant after applying the policy priority, choose MANUAL_REVIEW.\n- If the selected action is MANUAL_REVIEW, set requires_manual_review to true.\n- Otherwise, set requires_manual_review to false.\n- Keep the reason concise and operational.\n- Return valid JSON only.\n- Do not use Markdown.\n- Do not output text outside the JSON.`\n    },\n    {\n      role: \"user\",\n      content: `Evaluate this return case.\n\nReturn exactly this JSON structure:\n\n{\n  \"decision\": \"RESTOCK|REFURBISH|RETURN_TO_SUPPLIER|SCRAP|MANUAL_REVIEW\",\n  \"confidence\": 0.0,\n  \"reason\": \"short employee-readable explanation\",\n  \"matched_policy_ids\": [],\n  \"economic_reasoning\": \"short financial explanation\",\n  \"requires_manual_review\": false\n}\n\nCASE DATA:\n${JSON.stringify($json.decision_context)}`\n    }\n  ]\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2112,
+        64
+      ],
+      "id": "bd200505-6b2b-5ca9-8002-7a91df0d3315",
+      "name": "Local AI Decision"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $json;\n\nconst original =\n  $(\"Prepare Decision Context\").first().json;\n\nlet content = response?.message?.content;\n\nif (!content) {\n  throw new Error(\"Ollama returned no message content.\");\n}\n\ncontent = String(content)\n  .trim()\n  .replace(/^```json\\s*/i, \"\")\n  .replace(/^```\\s*/i, \"\")\n  .replace(/```$/i, \"\")\n  .trim();\n\nlet parsed;\n\ntry {\n  parsed = JSON.parse(content);\n} catch (error) {\n  return [{\n    json: {\n      ...original,\n      ai_result: {\n        parse_success: false,\n        raw_response: content,\n        error: error.message\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...original,\n    ai_result: {\n      parse_success: true,\n      decision: parsed.decision,\n      confidence: Number(parsed.confidence),\n      reason: parsed.reason,\n      matched_policy_ids: parsed.matched_policy_ids || [],\n      economic_reasoning: parsed.economic_reasoning || \"\",\n      requires_manual_review: Boolean(parsed.requires_manual_review)\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2272,
+        64
+      ],
+      "id": "4bd9dc95-2a42-5c44-93ab-15df76e77863",
+      "name": "Parse AI Decision"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $json;\n\nconst allowedActions = [\n  \"RESTOCK\",\n  \"REFURBISH\",\n  \"RETURN_TO_SUPPLIER\",\n  \"SCRAP\",\n  \"MANUAL_REVIEW\"\n];\n\nlet finalAction = d.ai_result?.decision;\nlet source = \"AI_RECOMMENDATION\";\nlet reason = d.ai_result?.reason;\n\n// Find any learned policies that already matched this return case\nconst matchedPolicies =\n  d.policy_match_result?.matched_policies || [];\n\nconst learnedPolicies = matchedPolicies.filter(policy =>\n  String(policy.group || \"\").toUpperCase() === \"LEARNED\" &&\n  allowedActions.includes(policy.preferred_action)\n);\n\n// --------------------------------------------------\n// 1. AI FAILURE FALLBACK\n// --------------------------------------------------\n\nif (!d.ai_result?.parse_success) {\n  finalAction = \"MANUAL_REVIEW\";\n  source = \"AI_FAILURE_FALLBACK\";\n  reason = \"AI response could not be safely interpreted.\";\n}\n\n// --------------------------------------------------\n// 2. LEARNED POLICY\n// Approved learned policies represent validated\n// repeated human corrections.\n// --------------------------------------------------\n\nif (learnedPolicies.length > 0) {\n  const learnedPolicy = learnedPolicies[0];\n\n  finalAction = learnedPolicy.preferred_action;\n  source = \"LEARNED_POLICY\";\n\n  reason =\n    `Approved learned policy applied: ${learnedPolicy.name}. ` +\n    `This policy was created from repeated human corrections.`;\n}\n\n// --------------------------------------------------\n// 3. HARD FORCED ACTION\n// Hard rules override learned policies and AI.\n// --------------------------------------------------\n\nif (d.hard_rule_result?.forced_action) {\n  finalAction = d.hard_rule_result.forced_action;\n  source = \"HARD_RULE\";\n  reason =\n    \"Deterministic company policy overrides other recommendations.\";\n}\n\n// --------------------------------------------------\n// 4. MANDATORY HARD-RULE REVIEW\n// --------------------------------------------------\n\nif (d.hard_rule_result?.requires_manual_review) {\n  finalAction = \"MANUAL_REVIEW\";\n  source = \"HARD_RULE\";\n  reason =\n    \"Company policy requires human approval for this case.\";\n}\n\n// --------------------------------------------------\n// 5. FINAL ACTION VALIDATION\n// --------------------------------------------------\n\nif (!allowedActions.includes(finalAction)) {\n  finalAction = \"MANUAL_REVIEW\";\n  source = \"VALIDATION_FALLBACK\";\n  reason =\n    \"Recommendation failed action validation.\";\n}\n\n// --------------------------------------------------\n// OUTPUT\n// --------------------------------------------------\n\nreturn [{\n  json: {\n    ...d,\n\n    final_decision: {\n      action: finalAction,\n      source,\n      reason,\n\nconfidence:\n  source === \"AI_RECOMMENDATION\"\n    ? d.ai_result?.confidence ?? null\n    : null,\n\n      economic_reasoning:\n        d.ai_result?.economic_reasoning ?? \"\",\n\n      matched_policy_ids:\n        matchedPolicies.map(policy => policy.id),\n\n      applied_learned_policy:\n        source === \"LEARNED_POLICY\"\n          ? {\n              id: learnedPolicies[0].id,\n              name: learnedPolicies[0].name,\n              preferred_action:\n                learnedPolicies[0].preferred_action\n            }\n          : null\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        288
+      ],
+      "id": "347e1281-4084-534d-a27b-49c238166b1d",
+      "name": "Apply Final Decision Guardrails"
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldType": "html",
+              "html": "<h2>Return Recommendation</h2>\n\n<p>\n  <strong>Product:</strong>\n  {{ $json.product.product_name }}\n</p>\n\n<p>\n  <strong>Recommended action:</strong>\n  {{ $json.final_decision.action }}\n</p>\n\n<p>\n  <strong>Reason:</strong>\n  {{ $json.final_decision.reason }}\n</p>\n\n<p>\n  <strong>Confidence:</strong>\n  {{\n    $json.final_decision.confidence === null ||\n    $json.final_decision.confidence === undefined\n      ? \"Policy-based\"\n      : Math.round(Number($json.final_decision.confidence) * 100) + \"%\"\n  }}\n</p>\n\n<p>\n  <strong>Economic reasoning:</strong>\n  {{ $json.final_decision.economic_reasoning }}\n</p>"
+            },
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "ACCEPT"
+                  },
+                  {
+                    "option": "OVERRIDE"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Submit Decision"
+        }
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        1552,
+        288
+      ],
+      "id": "6ec0d753-50e5-5183-b76a-71a6a9006300",
+      "name": "Employee Review Decision"
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Override Action",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "RESTOCK"
+                  },
+                  {
+                    "option": "REFURBISH"
+                  },
+                  {
+                    "option": "RETURN_TO_SUPPLIER"
+                  },
+                  {
+                    "option": "SCRAP"
+                  },
+                  {
+                    "option": "MANUAL_REVIEW"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Override Reason",
+              "fieldType": "textarea",
+              "placeholder": "Explain why the system recommendation is incorrect",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        2000,
+        336
+      ],
+      "id": "88c78078-f378-578d-8404-10c5345b44de",
+      "name": "Override Details"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7386e24d-b5d8-5d1e-9522-145e6cf486d0",
+              "leftValue": "={{ $json[\"Decision\"] }}",
+              "rightValue": "OVERRIDE",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1728,
+        288
+      ],
+      "id": "83aba97c-737e-5bd8-b1e0-b2fd11e8e9f0",
+      "name": "Was Decision Overridden?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const system = $(\"Apply Final Decision Guardrails\").first().json;\nconst review = $(\"Employee Review Decision\").first().json;\n\nconst wasOverridden = review.Decision === \"OVERRIDE\";\n\nlet humanDecision = system.final_decision.action;\nlet overrideReason = \"\";\n\nif (wasOverridden) {\n  const override = $(\"Override Details\").first().json;\n\n  humanDecision = override[\"Override Action\"];\n  overrideReason = override[\"Override Reason\"] || \"\";\n}\n\n// Remove duplicate policy IDs before saving\nconst matchedPolicyIds = [\n  ...new Set(system.final_decision.matched_policy_ids || [])\n];\n\n// Preserve null when confidence does not apply\nconst systemConfidence =\n  system.final_decision.confidence === null ||\n  system.final_decision.confidence === undefined\n    ? null\n    : Number(system.final_decision.confidence);\n\nreturn [{\n  json: {\n    return_id: system.return_id,\n    sku: system.sku,\n    product_name: system.product.product_name,\n    category: system.product.category,\n\n    condition: system.condition,\n    condition_note: system.condition_note || \"\",\n\n    system_decision: system.final_decision.action,\n    system_confidence: systemConfidence,\n\n    human_decision: humanDecision,\n    was_overridden: wasOverridden,\n    override_reason: overrideReason,\n\n    decision_source: wasOverridden\n      ? \"HUMAN_OVERRIDE\"\n      : \"HUMAN_ACCEPTED\",\n\n    matched_policy_ids: JSON.stringify(matchedPolicyIds),\n\n    created_at: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1968,
+        528
+      ],
+      "id": "e3bd6126-5c70-5352-b713-bc7e93d9e2df",
+      "name": "Build Final Human Decision"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        304,
+        -80
+      ],
+      "id": "8c5c82a5-ddc7-5806-a9cf-add2b830f235",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "const northstarPolicies = [\n{\n  id: \"POL-001\",\n  group: \"GLOBAL\",\n  name: \"Blank or unrecorded condition escalation\",\n  type: \"HARD\",\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Returns with no usable condition value must be escalated before any automated disposition.\"\n},\n{\n  id: \"POL-002\",\n  group: \"GLOBAL\",\n  name: \"Unknown condition value escalation\",\n  type: \"HARD\",\n  conditions: [\"unknown\", \"invalid\"],\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Unrecognized condition codes must be escalated for supervisor review.\"\n},\n{\n  id: \"POL-003\",\n  group: \"GLOBAL\",\n  name: \"Unclear condition escalation\",\n  type: \"HARD\",\n  conditions: [\"unclear\"],\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Inspection marked unclear requires human assessment before any automated action.\"\n},\n{\n  id: \"POL-004\",\n  group: \"GLOBAL\",\n  name: \"Unclear condition with vague note\",\n  type: \"HARD\",\n  conditions: [\"unclear\"],\n  note_keywords: [\"unclear\", \"cannot tell\", \"unsure\"],\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Unclear condition combined with vague note language requires supervisor review.\"\n},\n{\n  id: \"POL-005\",\n  group: \"GLOBAL\",\n  name: \"Perfect condition conflicting damage note\",\n  type: \"HARD\",\n  conditions: [\"perfect\"],\n  note_keywords: [\"damage\", \"torn\", \"stain\", \"defect\", \"broken\"],\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Perfect condition conflicting with damage language in the note requires reconciliation.\"\n},\n{\n  id: \"POL-006\",\n  group: \"GLOBAL\",\n  name: \"Tags attached but note says missing tags\",\n  type: \"HARD\",\n  note_keywords: [\"missing tag\", \"no tag\", \"tags removed\"],\n  tags_attached: true,\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Tags reported attached but note mentions missing tags; verify before disposition.\"\n},\n{\n  id: \"POL-007\",\n  group: \"GLOBAL\",\n  name: \"Tags missing but note says tags present\",\n  type: \"HARD\",\n  note_keywords: [\"tags attached\", \"tags present\", \"tag intact\"],\n  tags_attached: false,\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Tags reported missing but note indicates tags present; verify before disposition.\"\n},\n{\n  id: \"POL-008\",\n  group: \"GLOBAL\",\n  name: \"High original price auto-scrap blocked\",\n  type: \"HARD\",\n  min_original_price: 150,\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Items above €150 original price cannot be automatically scrapped without supervisor approval.\"\n},\n{\n  id: \"POL-009\",\n  group: \"GLOBAL\",\n  name: \"Premium tier auto-scrap blocked\",\n  type: \"HARD\",\n  brand_tiers: [\"premium\"],\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Premium brand tier items require manual review before any scrap disposition.\"\n},\n{\n  id: \"POL-010\",\n  group: \"GLOBAL\",\n  name: \"Refurbishment blocked when economics fail\",\n  type: \"HARD\",\n  requirements: {\n    refurbishment_economically_sensible: false\n  },\n  preferred_action: \"SCRAP\",\n  description: \"Refurbishment is not permitted when net recovery does not exceed scrap recovery.\"\n},\n{\n  id: \"POL-011\",\n  group: \"GLOBAL\",\n  name: \"Supplier return blocked outside window\",\n  type: \"HARD\",\n  requirements: {\n    supplier_window_valid: false\n  },\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Supplier returns cannot be initiated after the supplier return window has expired.\"\n},\n{\n  id: \"POL-012\",\n  group: \"GLOBAL\",\n  name: \"Conflicting policy signals escalation\",\n  type: \"HARD\",\n  note_keywords: [\"conflicting\", \"contradictory\", \"mixed signals\"],\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"When inspection evidence appears contradictory, escalate to manual review.\"\n},\n{\n  id: \"POL-013\",\n  group: \"RESTOCK\",\n  name: \"Perfect outerwear tags intact packaging\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Unworn outerwear in perfect condition with tags and intact packaging is eligible for immediate restock.\"\n},\n{\n  id: \"POL-014\",\n  group: \"RESTOCK\",\n  name: \"Perfect knitwear tags intact packaging\",\n  type: \"GUIDANCE\",\n  categories: [\"knitwear\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Knitwear in perfect condition with tags and original packaging may return to sellable inventory.\"\n},\n{\n  id: \"POL-015\",\n  group: \"RESTOCK\",\n  name: \"Perfect dress tags intact packaging\",\n  type: \"GUIDANCE\",\n  categories: [\"dress\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Dresses in perfect condition with tags attached and intact packaging are restock-ready.\"\n},\n{\n  id: \"POL-016\",\n  group: \"RESTOCK\",\n  name: \"Perfect trousers tags intact packaging\",\n  type: \"GUIDANCE\",\n  categories: [\"trousers\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Trousers in perfect condition with tags and intact packaging may be restocked.\"\n},\n{\n  id: \"POL-017\",\n  group: \"RESTOCK\",\n  name: \"Perfect t-shirt tags intact packaging\",\n  type: \"GUIDANCE\",\n  categories: [\"tshirt\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"T-shirts in perfect condition with tags and intact packaging are eligible for restock.\"\n},\n{\n  id: \"POL-018\",\n  group: \"RESTOCK\",\n  name: \"Perfect accessory tags intact packaging\",\n  type: \"GUIDANCE\",\n  categories: [\"accessory\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Accessories in perfect condition with tags and intact packaging may be restocked.\"\n},\n{\n  id: \"POL-019\",\n  group: \"RESTOCK\",\n  name: \"Perfect bag tags intact packaging\",\n  type: \"GUIDANCE\",\n  categories: [\"bag\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Bags in perfect condition with tags and intact packaging are restock-eligible.\"\n},\n{\n  id: \"POL-020\",\n  group: \"RESTOCK\",\n  name: \"Good apparel tags intact packaging\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\", \"tshirt\", \"trousers\", \"knitwear\", \"dress\"],\n  conditions: [\"good\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Apparel rated good with tags and intact packaging may restock when note confirms no hidden damage.\"\n},\n{\n  id: \"POL-021\",\n  group: \"RESTOCK\",\n  name: \"Perfect apparel missing tags retag path\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\", \"tshirt\", \"trousers\", \"knitwear\", \"dress\"],\n  conditions: [\"perfect\"],\n  tags_attached: false,\n  packaging: \"intact\",\n  preferred_action: \"REFURBISH\",\n  description: \"Perfect apparel missing tags should be retagged during refurbishment rather than direct restock.\"\n},\n{\n  id: \"POL-022\",\n  group: \"RESTOCK\",\n  name: \"Perfect shoes tags intact box\",\n  type: \"GUIDANCE\",\n  categories: [\"shoes\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Shoes in perfect condition with tags and intact shoe box may be restocked.\"\n},\n{\n  id: \"POL-023\",\n  group: \"RESTOCK\",\n  name: \"Damaged packaging only perfect apparel\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\", \"tshirt\", \"trousers\", \"knitwear\", \"dress\", \"accessory\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"damaged\",\n  preferred_action: \"RESTOCK\",\n  description: \"When only outer packaging is damaged and the item remains perfect with tags, restock is acceptable.\"\n},\n{\n  id: \"POL-024\",\n  group: \"RESTOCK\",\n  name: \"Missing packaging perfect tagged apparel\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\", \"tshirt\", \"trousers\", \"knitwear\", \"dress\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"missing\",\n  preferred_action: \"REFURBISH\",\n  description: \"Perfect tagged apparel without original packaging should be repackaged before restock.\"\n},\n{\n  id: \"POL-025\",\n  group: \"RESTOCK\",\n  name: \"Early return perfect apparel restock\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\", \"tshirt\", \"trousers\", \"knitwear\", \"dress\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  max_days_since_delivery: 14,\n  preferred_action: \"RESTOCK\",\n  description: \"Perfect tagged returns within 14 days of delivery are high-confidence restock candidates.\"\n},\n{\n  id: \"POL-026\",\n  group: \"RESTOCK\",\n  name: \"Good shoes tags intact box\",\n  type: \"GUIDANCE\",\n  categories: [\"shoes\"],\n  conditions: [\"good\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Shoes rated good with tags and intact box may restock if note confirms no sole or upper damage.\"\n},\n{\n  id: \"POL-027\",\n  group: \"REFURBISHMENT\",\n  name: \"Minor stain outerwear positive economics\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\"],\n  condition_keywords: [\"minor stain\", \"small stain\", \"light stain\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Outerwear with a minor removable stain should be refurbished when recovery economics justify cleaning.\"\n},\n{\n  id: \"POL-028\",\n  group: \"REFURBISHMENT\",\n  name: \"Minor stain dress positive economics\",\n  type: \"GUIDANCE\",\n  categories: [\"dress\"],\n  condition_keywords: [\"minor stain\", \"small stain\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Dresses with minor stains may be cleaned and restocked when refurbishment is economically sensible.\"\n},\n{\n  id: \"POL-029\",\n  group: \"REFURBISHMENT\",\n  name: \"Minor stain knitwear positive economics\",\n  type: \"GUIDANCE\",\n  categories: [\"knitwear\"],\n  condition_keywords: [\"minor stain\", \"small stain\", \"spot\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Knitwear with minor spotting should be refurbished when cleaning cost is recovered through resale.\"\n},\n{\n  id: \"POL-030\",\n  group: \"REFURBISHMENT\",\n  name: \"Minor stain trousers positive economics\",\n  type: \"GUIDANCE\",\n  categories: [\"trousers\"],\n  condition_keywords: [\"minor stain\", \"small stain\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Trousers with minor stains are refurbishment candidates when economics support cleaning.\"\n},\n{\n  id: \"POL-031\",\n  group: \"REFURBISHMENT\",\n  name: \"Minor stain t-shirt positive economics\",\n  type: \"GUIDANCE\",\n  categories: [\"tshirt\"],\n  condition_keywords: [\"minor stain\", \"small stain\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"T-shirts with minor stains may be refurbished when net recovery exceeds scrap value.\"\n},\n{\n  id: \"POL-032\",\n  group: \"REFURBISHMENT\",\n  name: \"Minor damage outerwear positive economics\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\"],\n  conditions: [\"minor_damage\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Outerwear with minor repairable damage should be refurbished when economics are favorable.\"\n},\n{\n  id: \"POL-033\",\n  group: \"REFURBISHMENT\",\n  name: \"Minor damage knitwear positive economics\",\n  type: \"GUIDANCE\",\n  categories: [\"knitwear\"],\n  conditions: [\"minor_damage\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Knitwear with minor damage such as loose stitching may be refurbished when cost-effective.\"\n},\n{\n  id: \"POL-034\",\n  group: \"REFURBISHMENT\",\n  name: \"Cosmetic defect bag positive economics\",\n  type: \"GUIDANCE\",\n  categories: [\"bag\"],\n  condition_keywords: [\"scuff\", \"scratch\", \"mark\", \"cosmetic\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Bags with cosmetic surface issues should be cleaned or conditioned when refurbishment pays off.\"\n},\n{\n  id: \"POL-035\",\n  group: \"REFURBISHMENT\",\n  name: \"Shoe cosmetic scuff positive economics\",\n  type: \"GUIDANCE\",\n  categories: [\"shoes\"],\n  condition_keywords: [\"scuff\", \"mark\", \"cosmetic\", \"light scratch\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Footwear with cosmetic scuffs may be polished or treated when economics support refurbishment.\"\n},\n{\n  id: \"POL-036\",\n  group: \"REFURBISHMENT\",\n  name: \"Missing tags mid premium apparel\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\", \"tshirt\", \"trousers\", \"knitwear\", \"dress\"],\n  brand_tiers: [\"mid\", \"premium\"],\n  tags_attached: false,\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Mid and premium apparel missing tags should be retagged via refurbishment before resale.\"\n},\n{\n  id: \"POL-037\",\n  group: \"REFURBISHMENT\",\n  name: \"Damaged packaging good perfect apparel\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\", \"tshirt\", \"trousers\", \"knitwear\", \"dress\"],\n  conditions: [\"good\", \"perfect\"],\n  packaging: \"damaged\",\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Apparel with damaged packaging but good garment condition should be repackaged through refurbishment.\"\n},\n{\n  id: \"POL-038\",\n  group: \"REFURBISHMENT\",\n  name: \"Accessory missing packaging\",\n  type: \"GUIDANCE\",\n  categories: [\"accessory\"],\n  conditions: [\"perfect\", \"good\"],\n  packaging: \"missing\",\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Accessories missing original packaging should be repackaged when economics allow.\"\n},\n{\n  id: \"POL-039\",\n  group: \"REFURBISHMENT\",\n  name: \"Good condition missing tags standard tier\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\", \"tshirt\", \"trousers\"],\n  brand_tiers: [\"standard\"],\n  conditions: [\"good\"],\n  tags_attached: false,\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Standard-tier apparel in good condition without tags should be retagged rather than scrapped.\"\n},\n{\n  id: \"POL-040\",\n  group: \"REFURBISHMENT\",\n  name: \"Odour note apparel cleaning\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\", \"tshirt\", \"trousers\", \"knitwear\", \"dress\"],\n  note_keywords: [\"odour\", \"odor\", \"smoke\", \"musty\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Apparel with odour noted in inspection should undergo cleaning refurbishment when economical.\"\n},\n{\n  id: \"POL-041\",\n  group: \"REFURBISHMENT\",\n  name: \"Trousers loose button repair\",\n  type: \"GUIDANCE\",\n  categories: [\"trousers\"],\n  note_keywords: [\"loose button\", \"missing button\", \"button detached\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Trousers with button issues are simple refurbishment cases when economics are positive.\"\n},\n{\n  id: \"POL-042\",\n  group: \"REFURBISHMENT\",\n  name: \"Outerwear zip fault repair\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\"],\n  note_keywords: [\"zip\", \"zipper\", \"stuck zip\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Outerwear with zip faults may be refurbished when repair cost is recovered through resale.\"\n},\n{\n  id: \"POL-043\",\n  group: \"REFURBISHMENT\",\n  name: \"Bag strap cosmetic wear\",\n  type: \"GUIDANCE\",\n  categories: [\"bag\"],\n  note_keywords: [\"strap\", \"handle\", \"fraying strap\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Bags with strap or handle cosmetic wear should be refurbished when economically justified.\"\n},\n{\n  id: \"POL-044\",\n  group: \"REFURBISHMENT\",\n  name: \"Dress minor hem repair\",\n  type: \"GUIDANCE\",\n  categories: [\"dress\"],\n  note_keywords: [\"hem\", \"loose hem\", \"unpicked hem\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Dresses with minor hem issues are refurbishment candidates when repair economics work.\"\n},\n{\n  id: \"POL-045\",\n  group: \"SCRAP\",\n  name: \"Used underwear hygiene scrap\",\n  type: \"HARD\",\n  categories: [\"underwear\"],\n  conditions: [\"used\"],\n  preferred_action: \"SCRAP\",\n  description: \"Used underwear must be scrapped for hygiene compliance; restock and refurbishment are forbidden.\"\n},\n{\n  id: \"POL-046\",\n  group: \"SCRAP\",\n  name: \"Damaged underwear scrap\",\n  type: \"HARD\",\n  categories: [\"underwear\"],\n  conditions: [\"damaged\", \"major_damage\", \"minor_damage\"],\n  preferred_action: \"SCRAP\",\n  description: \"Damaged underwear cannot re-enter inventory and must be scrapped.\"\n},\n{\n  id: \"POL-047\",\n  group: \"SCRAP\",\n  name: \"Major stain underwear scrap\",\n  type: \"HARD\",\n  categories: [\"underwear\"],\n  condition_keywords: [\"major stain\", \"heavy stain\", \"large stain\"],\n  preferred_action: \"SCRAP\",\n  description: \"Underwear with major staining must be scrapped regardless of brand tier.\"\n},\n{\n  id: \"POL-048\",\n  group: \"SCRAP\",\n  name: \"Major damage apparel failed economics\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\", \"tshirt\", \"trousers\", \"knitwear\", \"dress\"],\n  conditions: [\"major_damage\"],\n  requirements: {\n    refurbishment_economically_sensible: false\n  },\n  preferred_action: \"SCRAP\",\n  description: \"Apparel with major damage and negative refurbishment economics should be scrapped.\"\n},\n{\n  id: \"POL-049\",\n  group: \"SCRAP\",\n  name: \"Major stain failed economics\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\", \"tshirt\", \"trousers\", \"knitwear\", \"dress\"],\n  condition_keywords: [\"major stain\", \"heavy stain\", \"set-in stain\"],\n  requirements: {\n    refurbishment_economically_sensible: false\n  },\n  preferred_action: \"SCRAP\",\n  description: \"Items with major staining and no economic refurbishment path should be scrapped.\"\n},\n{\n  id: \"POL-050\",\n  group: \"SCRAP\",\n  name: \"Low resale standard tier failed economics\",\n  type: \"GUIDANCE\",\n  brand_tiers: [\"standard\"],\n  max_estimated_resale_value: 8,\n  requirements: {\n    refurbishment_economically_sensible: false\n  },\n  preferred_action: \"SCRAP\",\n  description: \"Low estimated resale standard-tier items with failed refurbishment economics favor scrap.\"\n},\n{\n  id: \"POL-051\",\n  group: \"SCRAP\",\n  name: \"Scrap recovery beats refurb recovery\",\n  type: \"GUIDANCE\",\n  requirements: {\n    refurbishment_economically_sensible: false\n  },\n  preferred_action: \"SCRAP\",\n  description: \"When refurbishment economics fail and scrap recovery is available, prefer scrap disposition.\"\n},\n{\n  id: \"POL-052\",\n  group: \"SCRAP\",\n  name: \"T-shirt extensive tear failed economics\",\n  type: \"GUIDANCE\",\n  categories: [\"tshirt\"],\n  note_keywords: [\"large tear\", \"ripped\", \"hole\", \"torn beyond\"],\n  requirements: {\n    refurbishment_economically_sensible: false\n  },\n  preferred_action: \"SCRAP\",\n  description: \"T-shirts with extensive tearing and no economical repair path should be scrapped.\"\n},\n{\n  id: \"POL-053\",\n  group: \"SCRAP\",\n  name: \"Shoe sole separation failed economics\",\n  type: \"GUIDANCE\",\n  categories: [\"shoes\"],\n  note_keywords: [\"sole detached\", \"sole separation\", \"sole coming off\"],\n  requirements: {\n    refurbishment_economically_sensible: false\n  },\n  preferred_action: \"SCRAP\",\n  description: \"Shoes with detached soles and uneconomical repair should be scrapped for material recovery.\"\n},\n{\n  id: \"POL-054\",\n  group: \"SCRAP\",\n  name: \"Mould or mildew note scrap\",\n  type: \"HARD\",\n  note_keywords: [\"mould\", \"mold\", \"mildew\"],\n  preferred_action: \"SCRAP\",\n  description: \"Items with mould or mildew noted must be scrapped; they cannot be restocked or refurbished.\"\n},\n{\n  id: \"POL-055\",\n  group: \"SCRAP\",\n  name: \"Expired supplier window failed refurb scrap\",\n  type: \"GUIDANCE\",\n  requirements: {\n    supplier_window_valid: false,\n    refurbishment_economically_sensible: false\n  },\n  preferred_action: \"SCRAP\",\n  description: \"When supplier return is unavailable and refurbishment fails economics, scrap is the default.\"\n},\n{\n  id: \"POL-056\",\n  group: \"SCRAP\",\n  name: \"Accessory broken hardware failed economics\",\n  type: \"GUIDANCE\",\n  categories: [\"accessory\"],\n  note_keywords: [\"broken clasp\", \"snapped\", \"broken hardware\", \"irreparable\"],\n  requirements: {\n    refurbishment_economically_sensible: false\n  },\n  preferred_action: \"SCRAP\",\n  description: \"Accessories with broken hardware and no economical fix should be scrapped.\"\n},\n{\n  id: \"POL-057\",\n  group: \"SUPPLIER_RETURN\",\n  name: \"Defective within supplier window\",\n  type: \"GUIDANCE\",\n  conditions: [\"defective\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Defective items within the supplier return window should be returned to supplier.\"\n},\n{\n  id: \"POL-058\",\n  group: \"SUPPLIER_RETURN\",\n  name: \"Supplier defect note within window\",\n  type: \"GUIDANCE\",\n  note_keywords: [\"supplier defect\", \"factory defect\", \"manufacturing defect\", \"faulty stitching\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Notes citing supplier or factory defects within the return window favor supplier return.\"\n},\n{\n  id: \"POL-059\",\n  group: \"SUPPLIER_RETURN\",\n  name: \"Shoes major damage defect within window\",\n  type: \"GUIDANCE\",\n  categories: [\"shoes\"],\n  conditions: [\"defective\", \"major_damage\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Shoes with major damage or defect within supplier window should return to supplier when noted as manufacturing issue.\"\n},\n{\n  id: \"POL-060\",\n  group: \"SUPPLIER_RETURN\",\n  name: \"Outerwear zip defect within window\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\"],\n  note_keywords: [\"zip broken\", \"zipper failed\", \"zip defective\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Outerwear zip failures attributed to defect within supplier window should return to supplier.\"\n},\n{\n  id: \"POL-061\",\n  group: \"SUPPLIER_RETURN\",\n  name: \"Bag stitching defect within window\",\n  type: \"GUIDANCE\",\n  categories: [\"bag\"],\n  note_keywords: [\"stitching defect\", \"seam split\", \"factory stitching\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Bag stitching defects noted within supplier window are supplier return candidates.\"\n},\n{\n  id: \"POL-062\",\n  group: \"SUPPLIER_RETURN\",\n  name: \"Knitwear manufacturing flaw within window\",\n  type: \"GUIDANCE\",\n  categories: [\"knitwear\"],\n  note_keywords: [\"manufacturing hole\", \"knit fault\", \"factory flaw\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Knitwear manufacturing flaws within supplier window should return to supplier.\"\n},\n{\n  id: \"POL-063\",\n  group: \"SUPPLIER_RETURN\",\n  name: \"Dress seam defect within window\",\n  type: \"GUIDANCE\",\n  categories: [\"dress\"],\n  note_keywords: [\"seam defect\", \"split seam\", \"faulty seam\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Dress seam defects within supplier window favor supplier return over local refurbishment.\"\n},\n{\n  id: \"POL-064\",\n  group: \"SUPPLIER_RETURN\",\n  name: \"Accessory defective clasp within window\",\n  type: \"GUIDANCE\",\n  categories: [\"accessory\"],\n  conditions: [\"defective\"],\n  note_keywords: [\"clasp\", \"fastener\", \"broken on arrival\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Defective accessory fasteners within supplier window should return to supplier.\"\n},\n{\n  id: \"POL-065\",\n  group: \"SUPPLIER_RETURN\",\n  name: \"Trousers fabric flaw within window\",\n  type: \"GUIDANCE\",\n  categories: [\"trousers\"],\n  note_keywords: [\"fabric flaw\", \"weave defect\", \"material defect\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Trousers with fabric flaws noted within supplier window should return to supplier.\"\n},\n{\n  id: \"POL-066\",\n  group: \"SUPPLIER_RETURN\",\n  name: \"Premium defective within window priority\",\n  type: \"GUIDANCE\",\n  brand_tiers: [\"premium\"],\n  conditions: [\"defective\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Premium tier defective returns within supplier window should prioritize supplier return.\"\n},\n{\n  id: \"POL-067\",\n  group: \"PREMIUM\",\n  name: \"Premium perfect restock priority\",\n  type: \"GUIDANCE\",\n  brand_tiers: [\"premium\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Premium items in perfect condition with tags and packaging should restock to protect margin.\"\n},\n{\n  id: \"POL-068\",\n  group: \"PREMIUM\",\n  name: \"Premium minor stain refurbish\",\n  type: \"GUIDANCE\",\n  brand_tiers: [\"premium\"],\n  condition_keywords: [\"minor stain\", \"small stain\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Premium items with minor stains should be refurbished rather than scrapped when economics allow.\"\n},\n{\n  id: \"POL-069\",\n  group: \"PREMIUM\",\n  name: \"Premium minor damage manual review\",\n  type: \"GUIDANCE\",\n  brand_tiers: [\"premium\"],\n  conditions: [\"minor_damage\"],\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Premium items with minor damage warrant supervisor review to protect brand value.\"\n},\n{\n  id: \"POL-070\",\n  group: \"PREMIUM\",\n  name: \"High price minor damage manual review\",\n  type: \"GUIDANCE\",\n  conditions: [\"minor_damage\"],\n  min_original_price: 120,\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Items above €120 with minor damage require manual review before refurbishment or scrap.\"\n},\n{\n  id: \"POL-071\",\n  group: \"PREMIUM\",\n  name: \"High resale refurbish preference\",\n  type: \"GUIDANCE\",\n  min_estimated_resale_value: 80,\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"High estimated resale value items should prefer refurbishment when economics are positive.\"\n},\n{\n  id: \"POL-072\",\n  group: \"PREMIUM\",\n  name: \"Premium missing tags refurbish required\",\n  type: \"GUIDANCE\",\n  brand_tiers: [\"premium\"],\n  conditions: [\"perfect\", \"good\"],\n  tags_attached: false,\n  preferred_action: \"REFURBISH\",\n  description: \"Premium items missing tags must be refurbished for retagging; direct restock is not allowed.\"\n},\n{\n  id: \"POL-073\",\n  group: \"PREMIUM\",\n  name: \"Premium bag cosmetic refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"bag\"],\n  brand_tiers: [\"premium\"],\n  condition_keywords: [\"scuff\", \"scratch\", \"mark\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Premium bags with cosmetic issues should be professionally refurbished when economical.\"\n},\n{\n  id: \"POL-074\",\n  group: \"PREMIUM\",\n  name: \"Premium shoe scuff refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"shoes\"],\n  brand_tiers: [\"premium\"],\n  condition_keywords: [\"scuff\", \"mark\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Premium footwear scuffs should be refurbished to preserve sellable condition.\"\n},\n{\n  id: \"POL-075\",\n  group: \"PREMIUM\",\n  name: \"Premium defective supplier return\",\n  type: \"GUIDANCE\",\n  brand_tiers: [\"premium\"],\n  conditions: [\"defective\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Premium defective items within supplier window should return to supplier to recover cost.\"\n},\n{\n  id: \"POL-076\",\n  group: \"PREMIUM\",\n  name: \"Premium major damage manual review mandatory\",\n  type: \"HARD\",\n  brand_tiers: [\"premium\"],\n  conditions: [\"major_damage\"],\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Premium items with major damage cannot be auto-scrapped or auto-refurbished; supervisor review required.\"\n},\n{\n  id: \"POL-077\",\n  group: \"PREMIUM\",\n  name: \"High value major stain manual review\",\n  type: \"GUIDANCE\",\n  condition_keywords: [\"major stain\", \"heavy stain\"],\n  min_original_price: 100,\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"High-value items with major staining require specialist review before disposition.\"\n},\n{\n  id: \"POL-078\",\n  group: \"PREMIUM\",\n  name: \"Premium outerwear missing packaging refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\"],\n  brand_tiers: [\"premium\"],\n  conditions: [\"perfect\", \"good\"],\n  packaging: \"missing\",\n  preferred_action: \"REFURBISH\",\n  description: \"Premium outerwear without original packaging should be repackaged via refurbishment.\"\n},\n{\n  id: \"POL-079\",\n  group: \"CATEGORY\",\n  name: \"Outerwear major stain economical refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\"],\n  condition_keywords: [\"major stain\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Outerwear major stains may still be refurbished when specialist cleaning economics work.\"\n},\n{\n  id: \"POL-080\",\n  group: \"CATEGORY\",\n  name: \"Outerwear good damaged packaging restock\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\"],\n  conditions: [\"good\"],\n  tags_attached: true,\n  packaging: \"damaged\",\n  preferred_action: \"RESTOCK\",\n  description: \"Good-condition outerwear with only damaged packaging and tags attached may restock after QC.\"\n},\n{\n  id: \"POL-081\",\n  group: \"CATEGORY\",\n  name: \"Outerwear pilling refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\"],\n  note_keywords: [\"pilling\", \"bobbling\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Outerwear with pilling noted should be de-pilled during refurbishment when economical.\"\n},\n{\n  id: \"POL-082\",\n  group: \"CATEGORY\",\n  name: \"Outerwear lining tear scrap bias\",\n  type: \"GUIDANCE\",\n  categories: [\"outerwear\"],\n  conditions: [\"major_damage\"],\n  note_keywords: [\"lining tear\", \"torn lining\"],\n  requirements: {\n    refurbishment_economically_sensible: false\n  },\n  preferred_action: \"SCRAP\",\n  description: \"Outerwear with lining tears and failed economics should be scrapped.\"\n},\n{\n  id: \"POL-083\",\n  group: \"CATEGORY\",\n  name: \"T-shirt perfect missing tags standard\",\n  type: \"GUIDANCE\",\n  categories: [\"tshirt\"],\n  brand_tiers: [\"standard\"],\n  conditions: [\"perfect\"],\n  tags_attached: false,\n  preferred_action: \"REFURBISH\",\n  description: \"Standard t-shirts perfect but tagless should be retagged through refurbishment.\"\n},\n{\n  id: \"POL-084\",\n  group: \"CATEGORY\",\n  name: \"T-shirt minor damage economical refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"tshirt\"],\n  conditions: [\"minor_damage\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"T-shirts with minor damage such as small holes or loose seams may be refurbished when economical.\"\n},\n{\n  id: \"POL-085\",\n  group: \"CATEGORY\",\n  name: \"T-shirt deodorant mark refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"tshirt\"],\n  note_keywords: [\"deodorant mark\", \"underarm mark\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"T-shirts with underarm or deodorant marks are common refurbishment cases when economics work.\"\n},\n{\n  id: \"POL-086\",\n  group: \"CATEGORY\",\n  name: \"T-shirt major damage scrap\",\n  type: \"GUIDANCE\",\n  categories: [\"tshirt\"],\n  conditions: [\"major_damage\"],\n  preferred_action: \"SCRAP\",\n  description: \"T-shirts with major damage and low recovery typically scrap unless manual review overrides.\"\n},\n{\n  id: \"POL-087\",\n  group: \"CATEGORY\",\n  name: \"Trousers altered hem refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"trousers\"],\n  note_keywords: [\"hemmed\", \"hem taken up\", \"altered hem\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Customer-altered trouser hems should be evaluated for refurbishment reset when economical.\"\n},\n{\n  id: \"POL-088\",\n  group: \"CATEGORY\",\n  name: \"Trousers knee wear minor damage refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"trousers\"],\n  conditions: [\"minor_damage\"],\n  note_keywords: [\"knee wear\", \"worn knee\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Trousers with knee wear may be refurbished if repair economics are positive.\"\n},\n{\n  id: \"POL-089\",\n  group: \"CATEGORY\",\n  name: \"Trousers perfect restock\",\n  type: \"GUIDANCE\",\n  categories: [\"trousers\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Perfect trousers with tags and intact packaging are standard restock items.\"\n},\n{\n  id: \"POL-090\",\n  group: \"CATEGORY\",\n  name: \"Trousers major stain failed economics scrap\",\n  type: \"GUIDANCE\",\n  categories: [\"trousers\"],\n  condition_keywords: [\"major stain\"],\n  requirements: {\n    refurbishment_economically_sensible: false\n  },\n  preferred_action: \"SCRAP\",\n  description: \"Trousers with major stains and failed refurbishment economics should scrap.\"\n},\n{\n  id: \"POL-091\",\n  group: \"CATEGORY\",\n  name: \"Shoes worn sole manual review\",\n  type: \"GUIDANCE\",\n  categories: [\"shoes\"],\n  conditions: [\"minor_damage\"],\n  note_keywords: [\"worn sole\", \"sole wear\"],\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Shoes with sole wear need manual review; restock is unlikely but scrap may be premature.\"\n},\n{\n  id: \"POL-092\",\n  group: \"CATEGORY\",\n  name: \"Shoes missing box repack refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"shoes\"],\n  conditions: [\"perfect\", \"good\"],\n  packaging: \"missing\",\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Shoes without original box should be repackaged through refurbishment before restock.\"\n},\n{\n  id: \"POL-093\",\n  group: \"CATEGORY\",\n  name: \"Shoes crease cosmetic refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"shoes\"],\n  note_keywords: [\"crease\", \"fold mark\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Shoes with upper creasing may be steamed or treated during refurbishment when economical.\"\n},\n{\n  id: \"POL-094\",\n  group: \"CATEGORY\",\n  name: \"Shoes defective supplier return\",\n  type: \"GUIDANCE\",\n  categories: [\"shoes\"],\n  conditions: [\"defective\"],\n  note_keywords: [\"glue fail\", \"defect\", \"manufacturing\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Defective shoes within supplier window should return to supplier.\"\n},\n{\n  id: \"POL-095\",\n  group: \"CATEGORY\",\n  name: \"Bag missing dust bag refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"bag\"],\n  note_keywords: [\"missing dust bag\", \"no dust bag\"],\n  packaging: \"damaged\",\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Bags missing dust bag or presentation packaging should be repackaged via refurbishment.\"\n},\n{\n  id: \"POL-096\",\n  group: \"CATEGORY\",\n  name: \"Bag interior stain refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"bag\"],\n  note_keywords: [\"interior stain\", \"inside stain\", \"lining stain\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Bags with minor interior staining may be cleaned when refurbishment economics justify it.\"\n},\n{\n  id: \"POL-097\",\n  group: \"CATEGORY\",\n  name: \"Bag perfect presentation restock\",\n  type: \"GUIDANCE\",\n  categories: [\"bag\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Bags in perfect condition with tags and intact packaging may restock immediately.\"\n},\n{\n  id: \"POL-098\",\n  group: \"CATEGORY\",\n  name: \"Bag major damage failed economics scrap\",\n  type: \"GUIDANCE\",\n  categories: [\"bag\"],\n  conditions: [\"major_damage\"],\n  requirements: {\n    refurbishment_economically_sensible: false\n  },\n  preferred_action: \"SCRAP\",\n  description: \"Bags with major structural damage and failed economics should scrap.\"\n},\n{\n  id: \"POL-099\",\n  group: \"CATEGORY\",\n  name: \"Knitwear snag refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"knitwear\"],\n  note_keywords: [\"snag\", \"pulled thread\", \"ladder\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Knitwear snags and pulled threads may be repaired during refurbishment when economical.\"\n},\n{\n  id: \"POL-100\",\n  group: \"CATEGORY\",\n  name: \"Knitwear shrinkage manual review\",\n  type: \"GUIDANCE\",\n  categories: [\"knitwear\"],\n  note_keywords: [\"shrunk\", \"shrinkage\", \"too small now\"],\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Knitwear shrinkage claims require manual review; restock is usually not appropriate.\"\n},\n{\n  id: \"POL-101\",\n  group: \"CATEGORY\",\n  name: \"Knitwear perfect restock\",\n  type: \"GUIDANCE\",\n  categories: [\"knitwear\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Perfect knitwear with tags and intact packaging is restock-eligible.\"\n},\n{\n  id: \"POL-102\",\n  group: \"CATEGORY\",\n  name: \"Knitwear hole major damage scrap\",\n  type: \"GUIDANCE\",\n  categories: [\"knitwear\"],\n  conditions: [\"major_damage\"],\n  note_keywords: [\"hole\", \"large hole\"],\n  preferred_action: \"SCRAP\",\n  description: \"Knitwear with large holes and major damage typically scraps unless economics support repair.\"\n},\n{\n  id: \"POL-103\",\n  group: \"CATEGORY\",\n  name: \"Underwear perfect unworn restock\",\n  type: \"GUIDANCE\",\n  categories: [\"underwear\"],\n  conditions: [\"perfect\"],\n  note_keywords: [\"unworn\", \"never worn\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Underwear confirmed unworn in perfect condition with sealed packaging may restock.\"\n},\n{\n  id: \"POL-104\",\n  group: \"CATEGORY\",\n  name: \"Underwear opened packaging manual review\",\n  type: \"HARD\",\n  categories: [\"underwear\"],\n  packaging: \"damaged\",\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Underwear with opened or damaged hygiene packaging requires manual hygiene review.\"\n},\n{\n  id: \"POL-105\",\n  group: \"CATEGORY\",\n  name: \"Underwear try-on evidence scrap\",\n  type: \"HARD\",\n  categories: [\"underwear\"],\n  note_keywords: [\"worn\", \"try-on\", \"try on\"],\n  preferred_action: \"SCRAP\",\n  description: \"Underwear with wear or try-on evidence noted must be scrapped.\"\n},\n{\n  id: \"POL-106\",\n  group: \"CATEGORY\",\n  name: \"Underwear any stain scrap\",\n  type: \"HARD\",\n  categories: [\"underwear\"],\n  condition_keywords: [\"stain\", \"minor stain\", \"major stain\"],\n  preferred_action: \"SCRAP\",\n  description: \"Any stained underwear must be scrapped for hygiene policy compliance.\"\n},\n{\n  id: \"POL-107\",\n  group: \"CATEGORY\",\n  name: \"Dress perfect restock\",\n  type: \"GUIDANCE\",\n  categories: [\"dress\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Dresses in perfect condition with tags and packaging may restock.\"\n},\n{\n  id: \"POL-108\",\n  group: \"CATEGORY\",\n  name: \"Dress makeup mark refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"dress\"],\n  note_keywords: [\"makeup mark\", \"foundation mark\", \"lipstick\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Dresses with makeup transfer marks are refurbishment candidates when cleaning economics work.\"\n},\n{\n  id: \"POL-109\",\n  group: \"CATEGORY\",\n  name: \"Dress embellishment loss manual review\",\n  type: \"GUIDANCE\",\n  categories: [\"dress\"],\n  note_keywords: [\"missing bead\", \"sequin loss\", \"beading loose\"],\n  preferred_action: \"MANUAL_REVIEW\",\n  description: \"Dresses with embellishment loss need manual assessment for repair feasibility.\"\n},\n{\n  id: \"POL-110\",\n  group: \"CATEGORY\",\n  name: \"Dress minor damage economical refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"dress\"],\n  conditions: [\"minor_damage\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Dresses with minor repairable damage should be refurbished when economics are favorable.\"\n},\n{\n  id: \"POL-111\",\n  group: \"CATEGORY\",\n  name: \"Accessory perfect restock\",\n  type: \"GUIDANCE\",\n  categories: [\"accessory\"],\n  conditions: [\"perfect\"],\n  tags_attached: true,\n  packaging: \"intact\",\n  preferred_action: \"RESTOCK\",\n  description: \"Accessories in perfect condition with tags and intact packaging may restock.\"\n},\n{\n  id: \"POL-112\",\n  group: \"CATEGORY\",\n  name: \"Accessory tarnish refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"accessory\"],\n  note_keywords: [\"tarnish\", \"tarnished\", \"discoloured\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Tarnished accessories may be cleaned during refurbishment when economical.\"\n},\n{\n  id: \"POL-113\",\n  group: \"CATEGORY\",\n  name: \"Accessory scratched surface refurbish\",\n  type: \"GUIDANCE\",\n  categories: [\"accessory\"],\n  condition_keywords: [\"scratch\", \"scuffed\"],\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Accessories with surface scratches may be polished or refinished when economics allow.\"\n},\n{\n  id: \"POL-114\",\n  group: \"CATEGORY\",\n  name: \"Accessory defective supplier return\",\n  type: \"GUIDANCE\",\n  categories: [\"accessory\"],\n  conditions: [\"defective\"],\n  requirements: {\n    supplier_window_valid: true\n  },\n  preferred_action: \"RETURN_TO_SUPPLIER\",\n  description: \"Defective accessories within supplier window should return to supplier.\"\n},\n{\n  id: \"POL-115\",\n  group: \"CATEGORY\",\n  name: \"Accessory missing tags refurbish repack\",\n  type: \"GUIDANCE\",\n  categories: [\"accessory\"],\n  conditions: [\"perfect\", \"good\"],\n  tags_attached: false,\n  requirements: {\n    refurbishment_economically_sensible: true\n  },\n  preferred_action: \"REFURBISH\",\n  description: \"Accessories missing tags should be retagged and repackaged via refurbishment.\"\n}\n];\nreturn northstarPolicies.map(policy => ({\n  json: {\n    policy_id: policy.id,\n    name: policy.name ?? \"\",\n    group: policy.group ?? \"\",\n    type: policy.type ?? \"\",\n    description: policy.description ?? \"\",\n    preferred_action: policy.preferred_action ?? \"\",\n\n    categories: JSON.stringify(policy.categories ?? []),\n    conditions: JSON.stringify(policy.conditions ?? []),\n    condition_keywords: JSON.stringify(policy.condition_keywords ?? []),\n    note_keywords: JSON.stringify(policy.note_keywords ?? []),\n    brand_tiers: JSON.stringify(policy.brand_tiers ?? []),\n\n    tags_attached:\n      policy.tags_attached === undefined\n        ? \"\"\n        : String(policy.tags_attached),\n\n    requirements: JSON.stringify(policy.requirements ?? {}),\n\n    min_original_price:\n      policy.min_original_price === undefined\n        ? \"\"\n        : String(policy.min_original_price),\n\n    max_estimated_resale_value:\n      policy.max_estimated_resale_value === undefined\n        ? \"\"\n        : String(policy.max_estimated_resale_value),\n\n    min_estimated_resale_value:\n      policy.min_estimated_resale_value === undefined\n        ? \"\"\n        : String(policy.min_estimated_resale_value),\n\n    max_days_since_delivery:\n      policy.max_days_since_delivery === undefined\n        ? \"\"\n        : String(policy.max_days_since_delivery)\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        -336
+      ],
+      "id": "41a3ff5f-e174-53be-8bc5-09c73a0818a7",
+      "name": "Prepare Policy Import"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "YOUR_DATA_TABLE_1",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "policy_id",
+              "displayName": "policy_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "group",
+              "displayName": "group",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "preferred_action",
+              "displayName": "preferred_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "categories",
+              "displayName": "categories",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "conditions",
+              "displayName": "conditions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "condition_keywords",
+              "displayName": "condition_keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "note_keywords",
+              "displayName": "note_keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "brand_tiers",
+              "displayName": "brand_tiers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "tags_attached",
+              "displayName": "tags_attached",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "requirements",
+              "displayName": "requirements",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "min_original_price",
+              "displayName": "min_original_price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "max_estimated_resale_value",
+              "displayName": "max_estimated_resale_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "min_estimated_resale_value",
+              "displayName": "min_estimated_resale_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "max_days_since_delivery",
+              "displayName": "max_days_since_delivery",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        -128
+      ],
+      "id": "ed5b755d-e862-583f-8bba-0de145f71c8b",
+      "name": "Insert Policies"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "northstar_polic",
+        "columns": {
+          "column": [
+            {
+              "name": "policy_id"
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "group"
+            },
+            {
+              "name": "type"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "preferred_action"
+            },
+            {
+              "name": "categories"
+            },
+            {
+              "name": "conditions"
+            },
+            {
+              "name": "condition_keywords"
+            },
+            {
+              "name": "note_keywords"
+            },
+            {
+              "name": "brand_tiers"
+            },
+            {
+              "name": "tags_attached"
+            },
+            {
+              "name": "requirements"
+            },
+            {
+              "name": "min_original_price"
+            },
+            {
+              "name": "max_estimated_resale_value"
+            },
+            {
+              "name": "min_estimated_resale_value"
+            },
+            {
+              "name": "max_days_since_delivery"
+            },
+            {
+              "name": "packaging"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1168,
+        -336
+      ],
+      "id": "a8a470ce-4160-5a75-bc4e-3615ed888fb6",
+      "name": "northstar_polic"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "northstar_polic",
+          "mode": "name"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1696,
+        -80
+      ],
+      "id": "02067948-68d1-52de-b404-1dc967c72a79",
+      "name": "Load Northstar Policies"
+    },
+    {
+      "parameters": {
+        "jsCode": "// All policy rows returned by the Data Table\nconst rows = $input.all().map(item => item.json);\n\n// Recover the original return/product case\nconst original = $(\"Lookup Northstar Product\").first().json;\n\nfunction parseJSON(value, fallback) {\n  if (value === null || value === undefined || value === \"\") {\n    return fallback;\n  }\n\n  try {\n    return typeof value === \"string\"\n      ? JSON.parse(value)\n      : value;\n  } catch {\n    return fallback;\n  }\n}\n\nconst policies = rows.map(row => ({\n  id: row.policy_id,\n  name: row.name,\n  group: row.group,\n  type: row.type,\n  description: row.description,\n  preferred_action: row.preferred_action,\n\n  categories: parseJSON(row.categories, []),\n  conditions: parseJSON(row.conditions, []),\n  condition_keywords: parseJSON(row.condition_keywords, []),\n  note_keywords: parseJSON(row.note_keywords, []),\n  brand_tiers: parseJSON(row.brand_tiers, []),\n\n  tags_attached:\n    row.tags_attached === \"\"\n      ? undefined\n      : row.tags_attached === \"true\",\n\n  requirements: parseJSON(row.requirements, {}),\n\n  min_original_price:\n    row.min_original_price === \"\"\n      ? undefined\n      : Number(row.min_original_price),\n\n  max_estimated_resale_value:\n    row.max_estimated_resale_value === \"\"\n      ? undefined\n      : Number(row.max_estimated_resale_value),\n\n  min_estimated_resale_value:\n    row.min_estimated_resale_value === \"\"\n      ? undefined\n      : Number(row.min_estimated_resale_value),\n\n  max_days_since_delivery:\n    row.max_days_since_delivery === \"\"\n      ? undefined\n      : Number(row.max_days_since_delivery)\n}));\n\nreturn [{\n  json: {\n    ...original,\n\n    company_policy: {\n      company: \"Northstar Apparel\",\n      currency: \"EUR\",\n      handling_cost: 4,\n\n      allowed_actions: [\n        \"RESTOCK\",\n        \"REFURBISH\",\n        \"RETURN_TO_SUPPLIER\",\n        \"SCRAP\",\n        \"MANUAL_REVIEW\"\n      ],\n\n      policies\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        -112
+      ],
+      "id": "4a3ee48c-49ec-5ca7-82ef-d3102082114f",
+      "name": "Build Policy Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $json;\nconst policies = d.company_policy?.policies || [];\n\nconst category = String(d.product?.category || \"\").toLowerCase();\nconst condition = String(d.condition || \"\").toLowerCase();\nconst note = String(d.condition_note || \"\").toLowerCase();\nconst brandTier = String(d.product?.brand_tier || \"\").toLowerCase();\nconst tags = String(d.tags_attached || \"\").toLowerCase() === \"yes\";\n\nconst econ = d.economics || {};\n\nfunction containsAny(text, words = []) {\n  return words.some(w =>\n    text.includes(String(w).toLowerCase())\n  );\n}\n\nconst matched = policies.filter(p => {\n\n  if (\n    p.categories?.length &&\n    !p.categories.map(x => String(x).toLowerCase()).includes(category)\n  ) return false;\n\n  if (\n    p.brand_tiers?.length &&\n    !p.brand_tiers.map(x => String(x).toLowerCase()).includes(brandTier)\n  ) return false;\n\n  if (\n    p.conditions?.length &&\n    !p.conditions.map(x => String(x).toLowerCase()).includes(condition)\n  ) return false;\n\n  if (\n    p.condition_keywords?.length &&\n    !containsAny(condition, p.condition_keywords)\n  ) return false;\n\n  if (\n    p.note_keywords?.length &&\n    !containsAny(note, p.note_keywords)\n  ) return false;\n\n  if (\n    p.tags_attached !== undefined &&\n    p.tags_attached !== tags\n  ) return false;\n\nif (p.requirements) {\n  for (const [key, expected] of Object.entries(p.requirements)) {\n\n    // Metadata about how a learned policy was created.\n    // These fields describe provenance, not case-matching requirements.\n    if (\n      key === \"learned_from_overrides\" ||\n      key === \"occurrence_count\" ||\n      key === \"previous_system_decision\"\n    ) {\n      continue;\n    }\n\n    // Operational requirements such as economics/supplier-window checks\n    if (econ[key] !== expected) return false;\n  }\n}\n\n  if (\n    p.min_original_price !== undefined &&\n    Number(d.product.original_price) < p.min_original_price\n  ) return false;\n\n  if (\n    p.max_estimated_resale_value !== undefined &&\n    Number(d.product.estimated_resale_value) > p.max_estimated_resale_value\n  ) return false;\n\n  if (\n    p.min_estimated_resale_value !== undefined &&\n    Number(d.product.estimated_resale_value) < p.min_estimated_resale_value\n  ) return false;\n\n  if (\n    p.max_days_since_delivery !== undefined &&\n    Number(d.days_since_delivery) > p.max_days_since_delivery\n  ) return false;\n\n  return true;\n});\n\nreturn [{\n  json: {\n    ...d,\n    policy_match_result: {\n      total_policies: policies.length,\n      matched_count: matched.length,\n      matched_policies: matched\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2368,
+        -160
+      ],
+      "id": "7708d4ba-e40c-5db9-9960-4bc77c26c53b",
+      "name": "Match Relevant Policies"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "northstar_decisions",
+        "columns": {
+          "column": [
+            {
+              "name": "return_id"
+            },
+            {
+              "name": "sku"
+            },
+            {
+              "name": "product_name"
+            },
+            {
+              "name": "category"
+            },
+            {
+              "name": "condition"
+            },
+            {
+              "name": "condition_note"
+            },
+            {
+              "name": "system_decision"
+            },
+            {
+              "name": "system_confidence",
+              "type": "number"
+            },
+            {
+              "name": "human_decision"
+            },
+            {
+              "name": "was_overridden",
+              "type": "boolean"
+            },
+            {
+              "name": "override_reason"
+            },
+            {
+              "name": "decision_source"
+            },
+            {
+              "name": "matched_policy_ids"
+            },
+            {
+              "name": "created_at",
+              "type": "date"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1168,
+        -32
+      ],
+      "id": "b817bf9a-962d-5ee6-9986-d5aa41b304b9",
+      "name": "northstar_decisions"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "YOUR_DATA_TABLE_2",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "was_overridden": false
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "return_id",
+              "displayName": "return_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sku",
+              "displayName": "sku",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "product_name",
+              "displayName": "product_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "condition",
+              "displayName": "condition",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "condition_note",
+              "displayName": "condition_note",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "system_decision",
+              "displayName": "system_decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "system_confidence",
+              "displayName": "system_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "human_decision",
+              "displayName": "human_decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "was_overridden",
+              "displayName": "was_overridden",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "override_reason",
+              "displayName": "override_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "decision_source",
+              "displayName": "decision_source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "matched_policy_ids",
+              "displayName": "matched_policy_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2144,
+        528
+      ],
+      "id": "b247ed86-48e2-5f29-8b2f-a747688ecf3d",
+      "name": "Save Decision History"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "YOUR_DATA_TABLE_2",
+          "mode": "id"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "was_overridden",
+              "condition": "isTrue"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        -80
+      ],
+      "id": "44d9391f-c295-5262-863a-86c46ee3294d",
+      "name": "Load Human Overrides"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json);\n\n// Remove duplicate return IDs\nconst unique = [\n  ...new Map(rows.map(row => [row.return_id, row])).values()\n];\n\n// Group similar corrections\nconst groups = {};\n\nfor (const row of unique) {\n\n  const key = [\n    row.category,\n    row.condition,\n    row.system_decision,\n    row.human_decision\n  ].join(\"|\").toLowerCase();\n\n  if (!groups[key]) {\n    groups[key] = {\n      category: row.category,\n      condition: row.condition,\n      system_decision: row.system_decision,\n      corrected_decision: row.human_decision,\n      occurrence_count: 0,\n      examples: []\n    };\n  }\n\n  groups[key].occurrence_count++;\n\n  groups[key].examples.push({\n    return_id: row.return_id,\n    sku: row.sku,\n    condition_note: row.condition_note,\n    override_reason: row.override_reason\n  });\n}\n\nconst patterns = Object.values(groups).map(pattern => ({\n  ...pattern,\n\n  // Require 3 separate returns before proposing policy\n  candidate_rule_ready: pattern.occurrence_count >= 3\n}));\n\nreturn patterns.map(pattern => ({\n  json: pattern\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -80
+      ],
+      "id": "ea0f9438-05ff-5d0c-91d5-c9af35d58865",
+      "name": "Detect Correction Patterns"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9ce0b982-e56e-5523-9a13-6e93e6ab84fc",
+              "leftValue": "={{ $json.candidate_rule_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        320,
+        160
+      ],
+      "id": "257e541a-47c3-51bc-a932-363fd6d8ebe3",
+      "name": "Candidate Rule Ready?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\n\nconst candidateRule = {\n  policy_id: `LEARNED-${Date.now()}`,\n  name: `${p.category} ${p.condition} human-review escalation`,\n  group: \"LEARNED\",\n  type: \"GUIDANCE\",\n\n  description:\n    `Learned from ${p.occurrence_count} human overrides. ` +\n    `For ${p.category} returns with condition \"${p.condition}\", ` +\n    `employees repeatedly changed ${p.system_decision} to ${p.corrected_decision}.`,\n\n  preferred_action: p.corrected_decision,\n\n  categories: JSON.stringify([p.category]),\n  conditions: JSON.stringify([p.condition]),\n  condition_keywords: JSON.stringify([]),\n  note_keywords: JSON.stringify([]),\n  brand_tiers: JSON.stringify([]),\n  tags_attached: \"\",\n  requirements: JSON.stringify({\n    learned_from_overrides: true,\n    occurrence_count: p.occurrence_count,\n    previous_system_decision: p.system_decision\n  }),\n\n  min_original_price: \"\",\n  max_estimated_resale_value: \"\",\n  min_estimated_resale_value: \"\",\n  max_days_since_delivery: \"\",\n\n  evidence: JSON.stringify(p.examples),\n  approval_status: \"PENDING\"\n};\n\nreturn [{ json: candidateRule }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        144
+      ],
+      "id": "275b7c4a-7e0b-57f1-a7fb-707d78def34b",
+      "name": "Generate Candidate Rule"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "296d931e-35ff-53ec-a751-337e65c2b6f7",
+              "leftValue": "={{ $(\"Manager Rule Approval\").first().json.Approval }}",
+              "rightValue": "APPROVE",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        688,
+        432
+      ],
+      "id": "62d3b690-fdf4-5831-ab19-39a338669ac2",
+      "name": "Rule Approved?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const candidate = $json;\n\nreturn [{\n  json: {\n    policy_id: candidate.policy_id,\n    name: candidate.name,\n    group: candidate.group,\n    type: candidate.type,\n    description: candidate.description,\n    preferred_action: candidate.preferred_action,\n\n    categories: candidate.categories,\n    conditions: candidate.conditions,\n    condition_keywords: candidate.condition_keywords,\n    note_keywords: candidate.note_keywords,\n    brand_tiers: candidate.brand_tiers,\n    tags_attached: candidate.tags_attached,\n\n    requirements: candidate.requirements,\n\n    min_original_price: candidate.min_original_price,\n    max_estimated_resale_value: candidate.max_estimated_resale_value,\n    min_estimated_resale_value: candidate.min_estimated_resale_value,\n    max_days_since_delivery: candidate.max_days_since_delivery,\n\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        416
+      ],
+      "id": "05c810c2-7bc8-587d-abcf-210e3c7927b2",
+      "name": "Prepare Approved Policy"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "YOUR_DATA_TABLE_1",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "policy_id",
+              "displayName": "policy_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "group",
+              "displayName": "group",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "preferred_action",
+              "displayName": "preferred_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "categories",
+              "displayName": "categories",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "conditions",
+              "displayName": "conditions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "condition_keywords",
+              "displayName": "condition_keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "note_keywords",
+              "displayName": "note_keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "brand_tiers",
+              "displayName": "brand_tiers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "tags_attached",
+              "displayName": "tags_attached",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "requirements",
+              "displayName": "requirements",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "min_original_price",
+              "displayName": "min_original_price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "max_estimated_resale_value",
+              "displayName": "max_estimated_resale_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "min_estimated_resale_value",
+              "displayName": "min_estimated_resale_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "max_days_since_delivery",
+              "displayName": "max_days_since_delivery",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        656
+      ],
+      "id": "3b6a4a09-10c1-52f4-968d-9e822505d59c",
+      "name": "Activate Learned Policy"
+    },
+    {
+      "parameters": {
+        "formTitle": "Manager Rule Approval",
+        "formDescription": "Review a learned policy candidate before it becomes active.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Approval",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "APPROVE"
+                  },
+                  {
+                    "option": "REJECT"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        304,
+        432
+      ],
+      "id": "3571fe1c-101e-5610-920a-25c58ddce27e",
+      "name": "Manager Rule Approval"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "YOUR_DATA_TABLE_3",
+          "mode": "id"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "approval_status",
+              "keyValue": "PENDING"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        432
+      ],
+      "id": "f4fb5a12-75c5-51d5-9696-90bd5b25dc16",
+      "name": "Load Pending Candidate"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "YOUR_DATA_TABLE_3",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "policy_id",
+              "displayName": "policy_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "group",
+              "displayName": "group",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "preferred_action",
+              "displayName": "preferred_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "categories",
+              "displayName": "categories",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "conditions",
+              "displayName": "conditions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "condition_keywords",
+              "displayName": "condition_keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "note_keywords",
+              "displayName": "note_keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "brand_tiers",
+              "displayName": "brand_tiers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "tags_attached",
+              "displayName": "tags_attached",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "requirements",
+              "displayName": "requirements",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "min_original_price",
+              "displayName": "min_original_price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "max_estimated_resale_value",
+              "displayName": "max_estimated_resale_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "min_estimated_resale_value",
+              "displayName": "min_estimated_resale_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "max_days_since_delivery",
+              "displayName": "max_days_since_delivery",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "approval_status",
+              "displayName": "approval_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        784,
+        144
+      ],
+      "id": "cb0312c5-c74e-5efa-acce-eae3f7e24dbf",
+      "name": "Save Pending Candidate"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "YOUR_DATA_TABLE_3",
+          "mode": "id"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "policy_id",
+              "keyValue": "={{ $json.policy_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "approval_status": "APPROVED"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "policy_id",
+              "displayName": "policy_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "group",
+              "displayName": "group",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "preferred_action",
+              "displayName": "preferred_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "categories",
+              "displayName": "categories",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "conditions",
+              "displayName": "conditions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "condition_keywords",
+              "displayName": "condition_keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "note_keywords",
+              "displayName": "note_keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "brand_tiers",
+              "displayName": "brand_tiers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "tags_attached",
+              "displayName": "tags_attached",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "requirements",
+              "displayName": "requirements",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "min_original_price",
+              "displayName": "min_original_price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "max_estimated_resale_value",
+              "displayName": "max_estimated_resale_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "min_estimated_resale_value",
+              "displayName": "min_estimated_resale_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "max_days_since_delivery",
+              "displayName": "max_days_since_delivery",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "approval_status",
+              "displayName": "approval_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "evidence",
+              "displayName": "evidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        656
+      ],
+      "id": "376147e2-7ef5-5ec6-8814-ba035c1eddf4",
+      "name": "Update row(s)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Normalize Return Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Product Found?": {
+      "main": [
+        [
+          {
+            "node": "Load Northstar Policies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Northstar Product": {
+      "main": [
+        [
+          {
+            "node": "Product Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Return Input": {
+      "main": [
+        [
+          {
+            "node": "Lookup Northstar Product",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Recovery Economics": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Hard Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Hard Rules": {
+      "main": [
+        [
+          {
+            "node": "Match Relevant Policies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Decision Context": {
+      "main": [
+        [
+          {
+            "node": "Local AI Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Local AI Decision": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Decision": {
+      "main": [
+        [
+          {
+            "node": "Apply Final Decision Guardrails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Final Decision Guardrails": {
+      "main": [
+        [
+          {
+            "node": "Employee Review Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Employee Review Decision": {
+      "main": [
+        [
+          {
+            "node": "Was Decision Overridden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Was Decision Overridden?": {
+      "main": [
+        [
+          {
+            "node": "Override Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Final Human Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Override Details": {
+      "main": [
+        [
+          {
+            "node": "Build Final Human Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Load Human Overrides",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Policy Import": {
+      "main": [
+        [
+          {
+            "node": "Insert Policies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Northstar Policies": {
+      "main": [
+        [
+          {
+            "node": "Build Policy Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Policy Context": {
+      "main": [
+        [
+          {
+            "node": "Calculate Recovery Economics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Relevant Policies": {
+      "main": [
+        [
+          {
+            "node": "Prepare Decision Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Final Human Decision": {
+      "main": [
+        [
+          {
+            "node": "Save Decision History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Human Overrides": {
+      "main": [
+        [
+          {
+            "node": "Detect Correction Patterns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Correction Patterns": {
+      "main": [
+        [
+          {
+            "node": "Candidate Rule Ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Rule Ready?": {
+      "main": [
+        [
+          {
+            "node": "Generate Candidate Rule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Candidate Rule": {
+      "main": [
+        [
+          {
+            "node": "Save Pending Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rule Approved?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Approved Policy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Approved Policy": {
+      "main": [
+        [
+          {
+            "node": "Activate Learned Policy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manager Rule Approval": {
+      "main": [
+        [
+          {
+            "node": "Load Pending Candidate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Pending Candidate": {
+      "main": [
+        [
+          {
+            "node": "Rule Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Activate Learned Policy": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  }
+}
