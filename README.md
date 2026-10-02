@@ -1,18 +1,14 @@
 # NORTHSTAR — AI-Assisted Returns Decisions with Human Review
 
-An n8n returns workflow that combines explicit business rules, AI recommendations, employee decisions, and manager-approved policy candidates.
+**Returns decisions mix fixed restrictions with judgment. NORTHSTAR is an n8n workflow where hard rules run first, an AI model recommends within those limits, guardrails resolve the result, and an employee makes the final call. Repeated corrections can become new policies, but only after a manager approves them.**
 
-![Northstar architecture](docs/architecture.png)
-
-*Original conceptual architecture, cropped to remove its promotional footer. In the actual export, guardrails precede employee review, every completed recommendation reaches the review form, and there is no confidence-threshold gate.*
-
-## The problem
-
-Returns decisions combine fixed restrictions with judgment about condition, resale value, and supplier options. An unconstrained AI recommendation can overlook those restrictions; a wholly manual process repeats the same policy lookups and calculations.
-
-Northstar calculates recovery economics, applies hard rules, selects relevant policy context, and asks an AI endpoint for a structured recommendation. Guardrails resolve the final system recommendation before an employee accepts or overrides it. This is a portfolio implementation with an embedded product catalog and policy seed, not a claim of production results.
-
-## The workflow
+| | |
+| --- | --- |
+| **Rules decide** | recovery economics, supplier-window eligibility, hard restrictions, the final guardrails |
+| **AI decides** | a structured recommendation from `RESTOCK`, `REFURBISH`, `RETURN_TO_SUPPLIER`, `SCRAP`, `MANUAL_REVIEW` |
+| **People decide** | an employee accepts or overrides every recommendation; a manager approves learned policies |
+| **Handles failure** | malformed AI JSON and unknown actions fall back to `MANUAL_REVIEW` |
+| **Status** | portfolio implementation with an embedded catalog and synthetic data; records a disposition, does not execute refunds or inventory changes |
 
 ```text
 Return inspection form → normalize → product and policy lookup
@@ -23,6 +19,21 @@ Return inspection form → normalize → product and policy lookup
 Manual analysis of overrides → repeated correction pattern
   → PENDING candidate → separate manager approval → active policy
 ```
+
+![Real Northstar n8n workflow](docs/n8n-workflow.png)
+
+*The actual n8n canvas, cropped; the internal AI endpoint label is redacted. Right: the decision path. Left: correction analysis and manager approval.*
+
+## What's in this repo
+
+- [`workflow/northstar.json`](workflow/northstar.json): the exported n8n workflow (inactive, no AI credential)
+- [`tests/smoke.mjs`](tests/smoke.mjs): checks guardrail precedence, malformed AI output, allowed actions and the candidate threshold
+- [`examples/`](examples/): synthetic cases, the guardrail output and a pending policy candidate
+- [`docs/`](docs/): data-table column map and implementation notes
+
+## Why this design
+
+An unconstrained AI recommendation can ignore restrictions that must never be broken. A fully manual process repeats the same policy lookups and calculations for every return. NORTHSTAR splits the work: rules for what is fixed, the model for what needs judgment, and a person for the final decision. The model never acts on its own output.
 
 ## How it works
 
@@ -59,13 +70,13 @@ Protect both forms and restrict table writes before adapting this to live use. T
 
 ## Screenshots
 
-![Real Northstar n8n workflow](docs/n8n-workflow.png)
-
-*Original full workflow canvas, cropped; the internal AI endpoint label is redacted.*
-
 ![Northstar candidate generation and manager approval branches](docs/human-review-loop.png)
 
 *Real canvas close-up: repeated corrections produce pending candidates; the separate approval path activates them.*
+
+![Northstar architecture](docs/architecture.png)
+
+*Original conceptual architecture. In the actual export, guardrails come before employee review, every completed recommendation reaches the review form, and there is no confidence-threshold gate.*
 
 ## Example
 
